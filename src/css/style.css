@@ -1,0 +1,26 @@
+body {
+	font-family: Arial, Helvetica, sans-serif;
+}
+
+h1 {
+
+}
+
+#container {
+	max-width: 800px;
+	margin: auto;
+}
+
+#canvasContainer {
+	background-color: #AAA;
+	margin: 16px auto;
+}
+
+#canvas {
+	margin: auto;
+    display: block;
+}
+
+#controls > button {
+	width: 128px;
+}
