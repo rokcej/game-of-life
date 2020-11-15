@@ -254,8 +254,10 @@ class Game {
 		if (col !== this.selection.col || row !== this.selection.row) {
 			// TODO: Edit all cells between current and last mouse position
 			
-			if (this.editing.active)
+			if (this.editing.active) {
 				this.grid[row][col] = this.editing.value;
+				this.setGeneration(0);
+			}
 			
 			this.selection.col = col;
 			this.selection.row = row;
@@ -269,6 +271,7 @@ class Game {
 		
 		this.editing.value = !this.grid[row][col]; // Negate
 		this.grid[row][col] = this.editing.value;
+		this.setGeneration(0);
 
 		this.selection.row = row;
 		this.selection.col = col;
