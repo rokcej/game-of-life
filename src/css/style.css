@@ -97,6 +97,12 @@ a:active {
 	margin-top: 64px;
 }
 
+.footerItem:not(:last-child):after {
+	content: " | ";
+	margin: 0 10px;
+	color: #ecf0f1;
+}
+
 li {
 	padding: 4px 0;
 }
