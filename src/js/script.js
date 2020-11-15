@@ -7,8 +7,8 @@ class Game {
 
 		// Parameters
 
-		this.cols = 80;
-		this.rows = 50;
+		this.cols = 96;
+		this.rows = 64;
 		
 		this.grid = null;
 		this.gridTemp = null;
@@ -23,7 +23,7 @@ class Game {
 		this.selection = { active: false,col: -1, row: -1};
 		this.editing = { active: false, value: null };
 
-		this.style = { border: 1, size: 12 };
+		this.style = { border: 1, size: 10 };
 		this.color = {	 
 			alive: "rgb(64, 64, 64)",
 			dead: "rgb(247, 247, 247)",
@@ -34,6 +34,7 @@ class Game {
 		// Functions
 
 		this.init();
+		this.drawGliderGun(6, 4);
 
 		window.requestAnimationFrame(() => { this.main(); }); // Start game
 	}
@@ -63,8 +64,8 @@ class Game {
 		/// Controls
 		document.getElementById("toggle").addEventListener("click", () => { this.toggleSimulation(); });
 		document.getElementById("step").addEventListener("click", () => { this.update(); });
-		document.getElementById("clear").addEventListener("click", () => { this.clearGrid(); });
-		document.getElementById("fill").addEventListener("click", () => { this.fillGrid(); });
+		document.getElementById("clear").addEventListener("click", () => { this.clearGrid(); this.setGeneration(0); });
+		document.getElementById("fill").addEventListener("click", () => { this.fillGrid(); this.setGeneration(0); });
 		document.getElementById("tickRatePlus").addEventListener("click", () => { this.setTickRate(this.tickRate + 1); });
 		document.getElementById("tickRatePlusPlus").addEventListener("click", () => { this.setTickRate(this.tickRate + 10); });
 		document.getElementById("tickRateMinus").addEventListener("click", () => { this.setTickRate(this.tickRate - 1); });
@@ -101,13 +102,24 @@ class Game {
 
 	// Utility functions
 
+	drawGliderGun(col, row) {
+		const gun = [
+			[0,  4], [0,  5], [1,  4], [1,  5],
+			[10, 4], [10, 5], [10, 6], [11, 3], [11, 7], [12, 2], [12, 8], [13, 2], [13, 8], [14, 5], [15, 3], [15, 7], [16, 4], [16, 5], [16, 6], [17, 5],
+			[20, 2], [20, 3], [20, 4], [21, 2], [21, 3], [21, 4], [22, 1], [22, 5], [24, 0], [24, 1], [24, 5], [24, 6],
+			[34, 2], [34, 3], [35, 2], [35, 3]
+		];
+
+		for (const g of gun)
+			this.grid[g[1] + row][g[0] + col] = true;
+	}
+
 	clearGrid() {
 		for (let row = 0; row < this.rows; ++row) {
 		for (let col = 0; col < this.cols; ++col) {
 			this.grid[row][col] = false;
 		}
 		}
-		this.setGeneration(0);
 	}
 
 	fillGrid() {
@@ -116,7 +128,6 @@ class Game {
 			this.grid[row][col] = Math.random() >= 0.5 ? true : false;
 		}
 		}
-		this.setGeneration(0);
 	}
 
 	getCellPosition(x, y, clamp) {
@@ -255,8 +266,12 @@ class Game {
 			// TODO: Edit all cells between current and last mouse position
 			
 			if (this.editing.active) {
-				this.grid[row][col] = this.editing.value;
-				this.setGeneration(0);
+				if ((e.buttons & 1) !== 1) {
+					this.editing.active = false;
+				} else {
+					this.grid[row][col] = this.editing.value;
+					this.setGeneration(0);
+				}
 			}
 			
 			this.selection.col = col;
@@ -265,16 +280,18 @@ class Game {
 	}
 
 	handleMouseDown(e) {
-		this.editing.active = true;
+		if (e.button === 0) {
+			this.editing.active = true;
 
-		let { row, col } = this.getCellPosition(e.offsetX, e.offsetY, true);
-		
-		this.editing.value = !this.grid[row][col]; // Negate
-		this.grid[row][col] = this.editing.value;
-		this.setGeneration(0);
+			let { row, col } = this.getCellPosition(e.offsetX, e.offsetY, true);
+			
+			this.editing.value = !this.grid[row][col]; // Negate
+			this.grid[row][col] = this.editing.value;
+			this.setGeneration(0);
 
-		this.selection.row = row;
-		this.selection.col = col;
+			this.selection.row = row;
+			this.selection.col = col;
+		}
 	}
 	handleMouseUp(e) {
 		this.editing.active = false;
@@ -285,7 +302,7 @@ class Game {
 	}
 	handleMouseOut(e) {
 		this.selection.active = false;
-		this.editing.active = false;
+		//this.editing.active = false;
 	}
 }
 
