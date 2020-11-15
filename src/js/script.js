@@ -7,21 +7,29 @@ class Game {
 
 		// Parameters
 
-		this.cols = 64;
-		this.rows = 48;
+		this.cols = 80;
+		this.rows = 50;
 		
 		this.grid = null;
 		this.gridTemp = null;
 
 		this.running = false;
 
-		this.tickRate = 2;
+		this.tickRate = 24;
 		this.timer = performance.now();
+
+		this.generation = 0;
 
 		this.selection = { active: false,col: -1, row: -1};
 		this.editing = { active: false, value: null };
 
 		this.style = { border: 1, size: 12 };
+		this.color = {	 
+			alive: "rgb(64, 64, 64)",
+			dead: "rgb(247, 247, 247)",
+			border: "rgb(196, 196, 196)",
+			highlight: "rgb(223, 64, 16)"
+		};
 
 		// Functions
 
@@ -33,6 +41,10 @@ class Game {
 	// Init
 
 	init() {
+		// Set UI values
+		this.setTickRate(this.tickRate);
+		this.setGeneration(this.generation);
+
 		// Resize canvas
 		this.canvas.width = this.cols * this.style.size + this.style.border;
 		this.canvas.height = this.rows * this.style.size + this.style.border;
@@ -49,21 +61,42 @@ class Game {
 		this.canvas.addEventListener("mouseover", e => { this.handleMouseOver(e); });
 		this.canvas.addEventListener("mouseout", e => { this.handleMouseOut(e); });
 		/// Controls
-		let toggle = document.getElementById("toggle");
-		toggle.addEventListener("click", () => {
-			this.running = !this.running;
-
-			if (this.running) {
-				toggle.innerHTML = "Stop";
-				this.update();
-				this.timer = performance.now();
-			} else {
-				toggle.innerHTML = "Start";
-			}
-		});
+		document.getElementById("toggle").addEventListener("click", () => { this.toggleSimulation(); });
 		document.getElementById("step").addEventListener("click", () => { this.update(); });
 		document.getElementById("clear").addEventListener("click", () => { this.clearGrid(); });
 		document.getElementById("fill").addEventListener("click", () => { this.fillGrid(); });
+		document.getElementById("tickRatePlus").addEventListener("click", () => { this.setTickRate(this.tickRate + 1); });
+		document.getElementById("tickRatePlusPlus").addEventListener("click", () => { this.setTickRate(this.tickRate + 10); });
+		document.getElementById("tickRateMinus").addEventListener("click", () => { this.setTickRate(this.tickRate - 1); });
+		document.getElementById("tickRateMinusMinus").addEventListener("click", () => { this.setTickRate(this.tickRate - 10); });
+	}
+
+	// Controls
+
+	setTickRate(tickRate) {
+		this.tickRate = Math.max(Math.min(tickRate, 999), 1);
+		const el = document.getElementById("tickRate");
+		el.innerHTML = this.tickRate;
+		el.title = "Step duration: " + (1.0 / this.tickRate).toFixed(3).replace(/\.?0+$/, '') + " seconds";
+	}
+
+	setGeneration(generation) {
+		this.generation = generation;
+		const el = document.getElementById("generation");
+		el.innerHTML = this.generation;
+		el.title = "Number of steps etc.";
+	}
+
+	toggleSimulation() {
+		this.running = !this.running;
+		const el = document.getElementById("toggle");
+		if (this.running) {
+			el.innerHTML = "Stop";
+			this.update();
+			this.timer = performance.now();
+		} else {
+			el.innerHTML = "Start";
+		}
 	}
 
 	// Utility functions
@@ -74,6 +107,7 @@ class Game {
 			this.grid[row][col] = false;
 		}
 		}
+		this.setGeneration(0);
 	}
 
 	fillGrid() {
@@ -82,6 +116,7 @@ class Game {
 			this.grid[row][col] = Math.random() >= 0.5 ? true : false;
 		}
 		}
+		this.setGeneration(0);
 	}
 
 	getCellPosition(x, y, clamp) {
@@ -129,6 +164,7 @@ class Game {
 
 	update() {
 		// Process each cell
+		let changed = false;
 		for (let y = 0; y < this.rows; ++y) {
 			let jMin = Math.max(y - 1, 0);
 			let jMax = Math.min(y + 1, this.rows - 1);
@@ -157,42 +193,43 @@ class Game {
 						state = true;
 				}
 				this.gridTemp[y][x] = state;
+
+				// Check if state changed
+				if (state !== this.grid[y][x])
+					changed = true;
 			}
 		}
 
-		// Swap grids
-		let temp = this.gridTemp;
-		this.gridTemp = this.grid;
-		this.grid = temp;
+		if (changed) {
+			// Swap grids
+			let temp = this.gridTemp;
+			this.gridTemp = this.grid;
+			this.grid = temp;
+
+			// Update generation
+			this.setGeneration(this.generation + 1);
+		} else {
+			// Stop simulation
+			if (this.running)
+				this.toggleSimulation();
+		}
 	}
 
 	draw() {
-		const alive = "rgb(64, 64, 64)";
-		const dead  = "rgb(247, 247, 247)";
-		const border = "rgb(196, 196, 196)";
-		const highlight = "rgb(223, 64, 16)";
-
-		let w = this.canvas.width / this.cols;
-		let h = this.canvas.height / this.rows;
-
+		// Draw cells
 		for (let row = 0; row < this.rows; ++row) {
-			let y = row / this.rows * this.canvas.height;
-			for (let col = 0; col < this.cols; ++col) {
-				let x = col / this.cols * this.canvas.width;
-
-				if (this.grid[row][col])
-					this.ctx.fillStyle = alive;
-				else
-					this.ctx.fillStyle = dead;
-
-				//this.ctx.fillRect(x, y, w, h);
-				this.drawCell(col, row, this.ctx.fillStyle, border);
-			}
+		for (let col = 0; col < this.cols; ++col) {
+			if (this.grid[row][col]) // Alive
+				this.drawCell(col, row, this.color.alive, this.color.border);
+			else // Dead
+				this.drawCell(col, row, this.color.dead, this.color.border);
+		}
 		}
 
+		// Draw selected cell
 		if (this.selection.active)
-			//this.drawCell(this.selection.col, this.selection.row, highlight, border);
-			this.strokeCell(this.selection.col, this.selection.row, highlight);
+			//this.drawCell(this.selection.col, this.selection.row, this.color.highlight, this.color.border);
+			this.strokeCell(this.selection.col, this.selection.row, this.color.highlight);
 	
 	}
 
